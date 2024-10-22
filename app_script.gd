@@ -16,79 +16,128 @@ var material_sending_started := false
 var all_selected:bool = false
 
 var key_words:Dictionary = {
-"basecolor": "albedo_texture",
-"-color": "albedo_texture",
-"_color": "albedo_texture",
-"albedo": "albedo_texture",
-"basemap": "albedo_texture",
-"diffuse": "albedo_texture",
-"-diff": "albedo_texture",
-"_diff": "albedo_texture",
-" diff": "albedo_texture",
-"-emit": "emission_texture",
-"_emit": "emission_texture",
-" emit": "emission_texture",
-"emission": "emission_texture",
-"emissive": "emission_texture",
-"-normal": "normal_texture",
-"_normal": "normal_texture",
-" normal": "normal_texture",
-"normalgl": "normal_texture",
-"-nor": "normal_texture",
-"_nor": "normal_texture",
-"normalmap": "normal_texture",
-"-orm": "orm_texture",
-"-arm": "orm_texture",
-"_orm": "orm_texture",
-"_arm": "orm_texture",
-" orm": "orm_texture",
-" arm": "orm_texture",
-"_height": "heightmap_texture",
-"-height": "heightmap_texture",
-"heightmap": "heightmap_texture",
-"displacement": "heightmap_texture",
-"roughness": "roughness_texture",
-"-rough": "roughness_texture",
-"_rough": "roughness_texture",
-" rough": "roughness_texture",
-"specular": "roughness_texture",
-"metallic": "metallic_texture",
-"metalness": "metallic_texture",
-"-metal": "metallic_texture",
-"_metal": "metallic_texture",
-" metal": "metallic_texture",
-"-ao": "ao_texture",
-"_ao": "ao_texture",
-" ao": "ao_texture",
-"ambientocclusion": "ao_texture"
+	"basecolor": "albedo_texture",
+	"-color": "albedo_texture",
+	"_color": "albedo_texture",
+	"albedo": "albedo_texture",
+	"basemap": "albedo_texture",
+	"diffuse": "albedo_texture",
+	"-diff": "albedo_texture",
+	"_diff": "albedo_texture",
+	" diff": "albedo_texture",
+	"-emit": "emission_texture",
+	"_emit": "emission_texture",
+	" emit": "emission_texture",
+	"emission": "emission_texture",
+	"emissive": "emission_texture",
+	"-normal": "normal_texture",
+	"_normal": "normal_texture",
+	" normal": "normal_texture",
+	"normalgl": "normal_texture",
+	"-nor": "normal_texture",
+	"_nor": "normal_texture",
+	"normalmap": "normal_texture",
+	"-orm": "orm_texture",
+	"-arm": "orm_texture",
+	"_orm": "orm_texture",
+	"_arm": "orm_texture",
+	" orm": "orm_texture",
+	" arm": "orm_texture",
+	"_height": "heightmap_texture",
+	"-height": "heightmap_texture",
+	"heightmap": "heightmap_texture",
+	"displacement": "heightmap_texture",
+	"roughness": "roughness_texture",
+	"-rough": "roughness_texture",
+	"_rough": "roughness_texture",
+	" rough": "roughness_texture",
+	"specular": "roughness_texture",
+	"metallic": "metallic_texture",
+	"metalness": "metallic_texture",
+	"-metal": "metallic_texture",
+	"_metal": "metallic_texture",
+	" metal": "metallic_texture",
+	"-ao": "ao_texture",
+	"_ao": "ao_texture",
+	" ao": "ao_texture",
+	"ambientocclusion": "ao_texture"
 }
 
 @onready var mutex := Mutex.new()
-var threads:Array[Thread]
+var threads:Array
 
 #@onready var thread := Thread.new()
 
-func prnti():
-	print(randi())
+
+
+class MyThread:
+	
+	var thread : Thread
+	var semaphore : Semaphore
+	var inner_mutex : Mutex
+	var stop_thread := false
+	var function:Callable
+	var result
+	var task_completed := false
+	
+	
+	func _init(mutex:Mutex = null) -> void:
+		thread = Thread.new()
+		semaphore = Semaphore.new()
+		thread.start(thread_cycle.bind(semaphore))
+		inner_mutex = Mutex.new()
+		
+	
+	func thread_cycle(semaphore:Semaphore): # inner code should probably not have await
+		while true:
+			semaphore.wait()
+			if stop_thread:break
+			
+			inner_mutex.lock()
+			result = self.function.call()
+			inner_mutex.unlock()
+			
+			task_completed = true
+	
+	
+	func get_result():
+		if task_completed:
+			task_completed = false
+			return result
+		else:
+			print("Task is not completed.")
+			
+	func kill() -> void:
+		stop_thread = true
+		semaphore.post()
+	
+	func give_task(task:Callable):
+		function = task
+		semaphore.post()
+		
+		
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	for i in range(0, OS.get_processor_count()/2):
-		threads.append(Thread.new())
-	
+		threads.append(MyThread.new())
+		
 	#thread.start(prnti)
 
 func give_task_to_a_thread(task:Callable):
 	for t in threads:
-		if !t.is_alive() and t.is_started():
-			t.wait_to_finish()
+		if !t.is_alive():
+			if t.is_started():
+				t.wait_to_finish()
 			t.start(task)
+			
 			
 func load_preview_image(folder_name, material_array):
 	var image := Image.load_from_file(origin_dir + "/.preview_images/" + folder_name + ".jpg")
 	mutex.lock()
 	material_array[1] = ImageTexture.create_from_image(image)
 	mutex.unlock()
+	
 
 var materials:Array[Array]
 var current_material := ""
@@ -103,9 +152,10 @@ func _process(delta: float) -> void:
 		var preview_texture
 		var material_to_render
 		var directory:String
-		
+		await RenderingServer.frame_post_draw
 		for mat in materials:
-			
+			if mat == [null]:
+				continue
 			mutex.lock()
 			folder_name = mat[0]
 			preview_texture = mat[1]
@@ -115,7 +165,7 @@ func _process(delta: float) -> void:
 			directory = origin_dir + "/" + folder_name
 			var files := DirAccess.get_files_at(directory)
 			
-			if is_preview_image_exists(folder_name) and mat != [null]:
+			if is_preview_image_exists(folder_name):
 				if preview_texture == null:
 					give_task_to_a_thread(load_preview_image.bind(folder_name, mat))
 					mat[1] = 1
@@ -126,7 +176,7 @@ func _process(delta: float) -> void:
 					mat = [null]
 			
 			else:
-				material_to_render
+				
 				if material_to_render == null:
 					give_task_to_a_thread(import_material.bind(folder_name, directory, files, mat))
 					
@@ -134,9 +184,11 @@ func _process(delta: float) -> void:
 				elif material_to_render is int and material_to_render == 1: # rendering
 					pass
 				else:
-					print(randi())
+					
 					preview_mesh.mesh.surface_set_material(0, material_to_render)
 					preview_texture = await get_pbr_material_texture()
+					
+					
 					mat[1] = preview_texture
 					give_task_to_a_thread(save_image_in_a_folder.bind(folder_name, preview_texture.get_image()))
 					
@@ -280,11 +332,11 @@ func import_material(folder_name:String, directory:String, files:PackedStringArr
 					#preview_material.heightmap_texture = ImageTexture.create_from_image(image)
 					pass # height does not work with triplanar mapping
 
-	print(maps)
+	
 	preview_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS_ANISOTROPIC
 	preview_material.uv1_triplanar = true
 	preview_material.uv1_scale = Vector3(0.5, 0.5, 0.5)
-	array[2] = preview_mesh
+	array[2] = preview_material
 
 func save_image_in_a_folder(folder_name, image:Image):
 	image.save_jpg(origin_dir+"/.preview_images/" + folder_name + ".jpg" )
@@ -393,5 +445,4 @@ func _on_search_text_edit_text_changed() -> void:
 			
 func _exit_tree() -> void:
 	for t in threads:
-		if t.is_alive():
-			t.wait_to_finish()
+		t.kill()

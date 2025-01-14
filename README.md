@@ -1,5 +1,5 @@
 # material-manager
-This material manager displays rendered from source images materials in a list and lets you send choosen materials' files to specified folder. Made with godot 4.3.
+This material manager displays in a list rendered from source images materials and lets you send choosen materials' files to specified folder. Made with godot 4.3.
 
 Workflow:
 1. Choose folder with material folders by pressing "Browse" of the left text field. When you choose a folder, importing starts. Each material folder holds material albedo and maps. Having albedo is required for material to be displaied

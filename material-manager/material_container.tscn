@@ -1,0 +1,31 @@
+[gd_scene load_steps=3 format=3 uid="uid://blxvld7ddf351"]
+
+[ext_resource type="Script" path="res://material_container_script.gd" id="1_monmc"]
+[ext_resource type="Texture2D" uid="uid://cnxh8w12c61ew" path="res://icon.svg" id="1_r2ssm"]
+
+[node name="PanelContainer" type="PanelContainer"]
+custom_minimum_size = Vector2(150, 0)
+focus_mode = 1
+script = ExtResource("1_monmc")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="ColorRect" type="TextureRect" parent="VBoxContainer"]
+layout_mode = 2
+texture = ExtResource("1_r2ssm")
+expand_mode = 4
+
+[node name="Label" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "yrtyrtyrt yryrty rykjhkhkjlk"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="CheckBox" type="CheckBox" parent="."]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 0
+
+[connection signal="focus_entered" from="." to="." method="_on_focus_entered"]

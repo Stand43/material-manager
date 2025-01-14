@@ -1,0 +1,30 @@
+[gd_scene load_steps=3 format=3 uid="uid://bh4sifxjwhx0k"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3jbo8"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_oqtiw"]
+material = SubResource("StandardMaterial3D_3jbo8")
+
+[node name="Node3D" type="Node3D"]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.4351)
+projection = 1
+current = true
+fov = 71.4376
+size = 1.64702
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.0676497, 0.928388, -0.365403, -0.589351, 0.258331, 0.765461, 0.805039, 0.267134, 0.529671, 0, 2.53569, -0.846303)
+light_energy = 1.323
+
+[node name="PreviewMesh" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.929963, -0.00915061, -0.367541, -0.100222, 0.955521, -0.277373, 0.353731, 0.294783, 0.887681, 0.0291407, -0.00591803, -1.20747)
+mesh = SubResource("BoxMesh_oqtiw")
+skeleton = NodePath("../..")
+
+[node name="SpotLight3D" type="SpotLight3D" parent="."]
+transform = Transform3D(0.833491, -0.218446, -0.507518, -0.0817984, 0.859625, -0.504336, 0.546445, 0.461874, 0.698621, -3.11368, -2.34783, 0.27648)
+spot_range = 4.0336
+spot_attenuation = 1.65
+spot_angle = 66.77

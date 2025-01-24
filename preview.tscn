@@ -1,6 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://bh4sifxjwhx0k"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3jbo8"]
+normal_enabled = true
 
 [sub_resource type="BoxMesh" id="BoxMesh_oqtiw"]
 material = SubResource("StandardMaterial3D_3jbo8")
@@ -19,7 +20,7 @@ transform = Transform3D(-0.0676497, 0.928388, -0.365403, -0.589351, 0.258331, 0.
 light_energy = 1.323
 
 [node name="PreviewMesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(0.929963, -0.00915061, -0.367541, -0.100222, 0.955521, -0.277373, 0.353731, 0.294783, 0.887681, 0.0291407, -0.00591803, -1.20747)
+transform = Transform3D(0.929963, -0.00915054, -0.367541, -0.100222, 0.955521, -0.277374, 0.353731, 0.294783, 0.887681, 0.0291407, -0.00591803, -1.20747)
 mesh = SubResource("BoxMesh_oqtiw")
 skeleton = NodePath("../..")
 

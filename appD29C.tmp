@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://da8dxuncfh6l1"]
+[gd_scene load_steps=13 format=3 uid="uid://da8dxuncfh6l1"]
 
 [ext_resource type="Script" path="res://app_script.gd" id="1_8bgsk"]
 [ext_resource type="PackedScene" uid="uid://bh4sifxjwhx0k" path="res://preview.tscn" id="1_k35y7"]
@@ -9,24 +9,13 @@ default_font_size = 20
 [sub_resource type="Theme" id="Theme_mwy8r"]
 
 [sub_resource type="Gradient" id="Gradient_dcnci"]
-colors = PackedColorArray(0.252754, 0.252754, 0.252754, 1, 0.470952, 0.454796, 0.465306, 1)
+colors = PackedColorArray(0, 0, 0, 1, 0.47451, 1, 1, 1)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_y00aq"]
 gradient = SubResource("Gradient_dcnci")
-width = 10
-height = 231
-fill_from = Vector2(0, 0.439316)
-fill_to = Vector2(1, 0.449573)
-
-[sub_resource type="Gradient" id="Gradient_d2f3d"]
-colors = PackedColorArray(0.241156, 0.241156, 0.241156, 1, 0.674815, 0.674815, 0.674815, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_1nllu"]
-gradient = SubResource("Gradient_d2f3d")
-width = 109
-height = 9
-fill_from = Vector2(1, 0)
-fill_to = Vector2(1, 1)
+width = 9
+fill_from = Vector2(-0.85, 0)
+fill_to = Vector2(1, 1.64)
 
 [sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_hbb1k"]
 
@@ -163,10 +152,8 @@ layout_mode = 2
 size_flags_vertical = 3
 theme = SubResource("Theme_mwy8r")
 theme_override_constants/separation = 2
-theme_override_constants/minimum_grab_thickness = 10
-theme_override_constants/autohide = 0
 theme_override_icons/grabber = SubResource("GradientTexture2D_y00aq")
-split_offset = 745
+split_offset = 660
 
 [node name="ScrollContainer" type="ScrollContainer" parent="SplitContainer"]
 layout_mode = 2
@@ -176,86 +163,27 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="VSplitContainer" type="VSplitContainer" parent="SplitContainer"]
+[node name="AspectRatioContainer" type="AspectRatioContainer" parent="SplitContainer"]
 layout_mode = 2
-theme_override_constants/autohide = 0
-theme_override_icons/grabber = SubResource("GradientTexture2D_1nllu")
-split_offset = 95
-
-[node name="AspectRatioContainer" type="AspectRatioContainer" parent="SplitContainer/VSplitContainer"]
-layout_mode = 2
-size_flags_vertical = 3
 alignment_vertical = 0
 
-[node name="SubViewportContainer" type="SubViewportContainer" parent="SplitContainer/VSplitContainer/AspectRatioContainer"]
+[node name="SubViewportContainer" type="SubViewportContainer" parent="SplitContainer/AspectRatioContainer"]
 custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 stretch = true
 
-[node name="SubViewport" type="SubViewport" parent="SplitContainer/VSplitContainer/AspectRatioContainer/SubViewportContainer"]
+[node name="SubViewport" type="SubViewport" parent="SplitContainer/AspectRatioContainer/SubViewportContainer"]
 world_3d = SubResource("World3D_djk3k")
 handle_input_locally = false
 scaling_3d_scale = 2.0
-size = Vector2i(396, 396)
+size = Vector2i(483, 483)
 render_target_update_mode = 4
 
-[node name="Node3D" parent="SplitContainer/VSplitContainer/AspectRatioContainer/SubViewportContainer/SubViewport" instance=ExtResource("1_k35y7")]
+[node name="Node3D" parent="SplitContainer/AspectRatioContainer/SubViewportContainer/SubViewport" instance=ExtResource("1_k35y7")]
 
-[node name="MarginContainer" type="MarginContainer" parent="SplitContainer/VSplitContainer"]
+[node name="ColorRect3" type="ColorRect" parent="SplitContainer/AspectRatioContainer/SubViewportContainer"]
+custom_minimum_size = Vector2(25.675, 14.24)
 layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.75
-theme_override_constants/margin_left = 4
-theme_override_constants/margin_top = 4
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 4
-
-[node name="VBoxContainer" type="VBoxContainer" parent="SplitContainer/VSplitContainer/MarginContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-size_flags_stretch_ratio = 0.78
-
-[node name="RotationContainer" type="HBoxContainer" parent="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer/RotationContainer"]
-layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 0
-size_flags_stretch_ratio = 0.8
-text = "Rotation"
-
-[node name="RotationSlider" type="HSlider" parent="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer/RotationContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-min_value = -6.0
-max_value = 6.0
-step = 0.1
-
-[node name="UVScaleContainer" type="HBoxContainer" parent="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer/UVScaleContainer"]
-layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 0
-size_flags_stretch_ratio = 0.8
-text = "UV scale"
-
-[node name="UVScaleSlider" type="HSlider" parent="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer/UVScaleContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-max_value = 5.0
-step = 0.01
-value = 1.0
-
-[node name="ToggleNMButton" type="Button" parent="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
-text = "Toggle normal map type (OpenGL/DirectX)"
-autowrap_mode = 2
 
 [node name="OriginFileDialog" type="FileDialog" parent="."]
 title = "Open a Directory"
@@ -286,10 +214,7 @@ use_native_dialog = true
 [connection signal="button_up" from="GridContainer/AllSelectButton" to="." method="_on_all_select_button_up"]
 [connection signal="text_changed" from="GridContainer/SearchTextEdit" to="." method="_on_search_text_edit_text_changed"]
 [connection signal="value_changed" from="GridContainer/HSlider" to="." method="_on_size_slider_value_changed"]
-[connection signal="value_changed" from="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer/RotationContainer/RotationSlider" to="." method="_on_rotation_slider_value_changed"]
-[connection signal="value_changed" from="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer/UVScaleContainer/UVScaleSlider" to="." method="_on_uv_scale_slider_value_changed"]
-[connection signal="button_up" from="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer/ToggleNMButton" to="." method="_on_toggle_nm_button_button_up"]
 [connection signal="dir_selected" from="OriginFileDialog" to="." method="_on_origin_dir_selected"]
 [connection signal="dir_selected" from="DestinationFileDialog" to="." method="_on_destination_dir_selected"]
 
-[editable path="SplitContainer/VSplitContainer/AspectRatioContainer/SubViewportContainer/SubViewport/Node3D"]
+[editable path="SplitContainer/AspectRatioContainer/SubViewportContainer/SubViewport/Node3D"]

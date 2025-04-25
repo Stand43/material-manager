@@ -18,7 +18,7 @@ expand_mode = 4
 
 [node name="Label" type="Label" parent="VBoxContainer"]
 layout_mode = 2
-text = "yrtyrtyrt yryrty rykjhkhkjlk"
+text = "text"
 clip_text = true
 text_overrun_behavior = 3
 

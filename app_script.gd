@@ -1,25 +1,23 @@
 extends VBoxContainer
 
 var dir:DirAccess
-#var origin_dir_access:DirAccess
 var origin_dir:String 
 var destination_dir:String
 var origin_folders:PackedStringArray
 var materials_for_sending:Array[MaterialStatusTracker]
 @onready var preview_mesh:MeshInstance3D = $SplitContainer.find_child('PreviewMesh')
-var material_processing_started := false
-var material_sending_started := false
+var is_processing_materials := false
+var is_sending_materials := false
 @onready var import_progress_bar := $HBoxContainer2/HBoxContainer/ImportProgressBar
 @onready var sending_progress_bar := $HBoxContainer2/HBoxContainer3/SendingProgressBar
 @onready var material_container := load("res://material_container.tscn")
 @onready var material_containers_parent := $SplitContainer/ScrollContainer/HFlowContainer
 var all_selected:bool = false
 @onready var viewport_container := $SplitContainer.find_child('SubViewportContainer')
+@onready var uv_slider := $SplitContainer/VSplitContainer/MarginContainer/VBoxContainer/UVScaleContainer/UVScaleSlider
 
 var key_words:Dictionary = {
 	"basecolor": "albedo_texture",
-	"-color": "albedo_texture",
-	"_color": "albedo_texture",
 	"_col": "albedo_texture",
 	"-col": "albedo_texture",
 	"albedo": "albedo_texture",
@@ -80,8 +78,6 @@ var key_words:Dictionary = {
 @onready var mutex := Mutex.new()
 var threads:Array
 
-
-
 class MyThread:
 	
 	var thread : Thread
@@ -92,15 +88,14 @@ class MyThread:
 	var result
 	var task_completed := true
 	
-	
 	func _init(mutex:Mutex = null) -> void:
 		thread = Thread.new()
 		semaphore = Semaphore.new()
-		thread.start(thread_cycle.bind(semaphore))
+		thread.start(thread_cycle.bind())
 		inner_mutex = Mutex.new()
 		
-	
-	func thread_cycle(semaphore:Semaphore): # inner code should probably not have await
+
+	func thread_cycle(): # inner code should probably not have await
 		while true:
 			semaphore.wait()
 			if stop_thread:break
@@ -131,16 +126,17 @@ class MyThread:
 		task_completed = false
 		semaphore.post()
 
+
 enum {
 	IMPORTING_MATERIAL,
 	LOADING_PREVIEW_IMAGE,
-	IMAGE_EXISTS_AND_PREVIEW_TEXTURE_LOADED,
-	WAITING_FOR_PREVIEW,
+	IMAGE_EXISTS_AND_PREVIEW_IMAGE_LOADED,
 	MATERIAL_READY,
 	SAVING_IMAGE,
-	MADE_NODE,
+	NEW_PREVIEW_IMAGE_CREATED,
 	DONE
 }
+
 class MaterialStatusTracker:
 	
 	var status: int = -1
@@ -148,16 +144,10 @@ class MaterialStatusTracker:
 	var material_to_render: StandardMaterial3D
 	var preview_texture
 	
-	
 	func _init(folder:String = '') -> void:
 		folder_name = folder
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	0
-	
-		
-	#thread.start(prnti)
+
 
 func give_task_to_a_thread(task:Callable) -> bool:
 	for t in threads:
@@ -172,18 +162,21 @@ func is_free_threads_available() -> bool:
 			return true
 	return false
 
+
+
 var materials:Array
-const max_processed_materials_per_frame = 20
+const MAX_PROCESSED_MATERIALS_PER_FRAME = 20
 var processed_materials_count := 0
 
 func _process(delta: float) -> void:
 	
-	if material_processing_started:
+	if is_processing_materials:
 		var object_to_remove = null
 		var directory: String
 		var files: PackedStringArray
 		
-		$SplitContainer.split_offset = $SplitContainer.size.x - 516
+		# making size of preview window fixed to 512px
+		$SplitContainer.split_offset = $SplitContainer.size.x - 512
 		
 		for mat in materials:
 			directory = origin_dir + "/" + mat.folder_name
@@ -204,9 +197,8 @@ func _process(delta: float) -> void:
 				
 				IMPORTING_MATERIAL: continue
 				LOADING_PREVIEW_IMAGE: continue
-				SAVING_IMAGE: continue
 					
-				IMAGE_EXISTS_AND_PREVIEW_TEXTURE_LOADED:
+				IMAGE_EXISTS_AND_PREVIEW_IMAGE_LOADED:
 					create_material_node(mat.preview_texture, mat.folder_name)
 					mat.status = DONE
 				
@@ -216,10 +208,10 @@ func _process(delta: float) -> void:
 								(await get_pbr_material_texture()).get_image()
 								)
 					create_material_node(mat.preview_texture, mat.folder_name)
-					mat.status = MADE_NODE
+					mat.status = NEW_PREVIEW_IMAGE_CREATED
 					break # to do a cycle
 					
-				MADE_NODE:
+				NEW_PREVIEW_IMAGE_CREATED:
 					var success = give_task_to_a_thread(save_image_in_a_folder.bind(mat))
 					if success:
 						mat.status = SAVING_IMAGE
@@ -229,25 +221,22 @@ func _process(delta: float) -> void:
 					break
 			
 			processed_materials_count += 1
-			if processed_materials_count == max_processed_materials_per_frame:
+			if processed_materials_count == MAX_PROCESSED_MATERIALS_PER_FRAME:
 				processed_materials_count = 0
 				break
 						
 		materials.erase(object_to_remove)
 		
 		
-		
-		
+		# importing finished
 		if import_progress_bar.value >= import_progress_bar.max_value:
-			material_processing_started = false
+			is_processing_materials = false
 			sort_containers()
 			enable_buttons()
-			threads.clear()
+			clear_threads()
 		
 
-
-
-	elif material_sending_started:
+	elif is_sending_materials:
 		var object_to_remove = null
 		for mat in materials_for_sending:
 			match mat.status:
@@ -266,13 +255,20 @@ func _process(delta: float) -> void:
 				
 		materials_for_sending.erase(object_to_remove)
 		
+		# sending finished
 		if sending_progress_bar.value == sending_progress_bar.max_value:
-			material_sending_started = false
+			is_sending_materials = false
 			sort_containers()
 			enable_buttons()
-			threads.clear()
+			clear_threads()
 
-func sort_containers():
+
+func clear_threads():
+	for t in threads:
+		t.kill()
+	threads.clear()
+
+func sort_containers(): # sort material preview containers
 	var containers := material_containers_parent.get_children()
 	var labels: PackedStringArray
 	for c in containers:
@@ -284,7 +280,6 @@ func sort_containers():
 				material_containers_parent.move_child(c, -1)
 				break
 		
-	
 
 func copy_files(files_for_sending, mat):
 	for file in files_for_sending:
@@ -292,40 +287,51 @@ func copy_files(files_for_sending, mat):
 			destination_dir + '/' + mat.folder_name + '/' + file)
 	mat.status = DONE
 
+
 func load_preview_image(mat_object):
 	var image := Image.load_from_file(origin_dir + "/.preview_images/" + mat_object.folder_name + ".jpg")
 	mat_object.preview_texture = ImageTexture.create_from_image(image)
-	mat_object.status = IMAGE_EXISTS_AND_PREVIEW_TEXTURE_LOADED
+	mat_object.status = IMAGE_EXISTS_AND_PREVIEW_IMAGE_LOADED
 
 
 func _on_open_origin_button_up() -> void:
 	$OriginFileDialog.popup()
-	#var s = OS.shell_open(OS.get_system_dir(OS.SYSTEM_DIR_DOCUMENTS))
-	#print(dir.get_directories())
-func _on_origin_dir_selected(dir: String) -> void:
-	origin_dir = dir
+
+
+var no_albedo_folders := ''
+func check_origin_folder_for_materials():
 	$HBoxContainer/OriginLineEdit.text = origin_dir
+	if origin_dir == '':
+		OS.alert('Origin folder path is empty.')
+		return
+	
 	origin_folders = DirAccess.get_directories_at(origin_dir)
 	if origin_folders.size() > 0:
 		materials.clear()
 		await DirAccess.make_dir_absolute(origin_dir + "/.preview_images")
 		
+		no_albedo_folders = ''
 		for folder_name in origin_folders:
 			var files := DirAccess.get_files_at(origin_dir + "/" + folder_name)
 			if is_folder_has_albedo(files, folder_name):
 				materials.append(MaterialStatusTracker.new(folder_name))
-				
-		if materials.size() > 0:
-			for i in range(0, OS.get_processor_count()/2):
-				threads.append(MyThread.new())
-			import_progress_bar.value = 0
-			import_progress_bar.max_value = materials.size()
-			for c in material_containers_parent.get_children():
-				c.queue_free()
-			disable_buttons()
-			material_processing_started = true
+			elif folder_name != '.preview_images':
+				no_albedo_folders +='- ' + folder_name + '\n'
 	
+
+
+func _on_origin_dir_selected(dir: String) -> void:
+	origin_dir = dir
+	
+	check_origin_folder_for_materials()
+
+	if no_albedo_folders != '':
+		var text := "Could not find color texture in these folders:\n\n"
+		OS.alert(text + no_albedo_folders)
+				
 		
+	
+
 
 func disable_buttons():
 	$HBoxContainer/OriginButton.disabled = true
@@ -335,18 +341,24 @@ func enable_buttons():
 	$HBoxContainer/OriginButton.disabled = false
 	$HBoxContainer2/HBoxContainer3/SendingButton.disabled = false
 
+
+
 func _on_open_destination_button_up() -> void:
 	$DestinationFileDialog.popup()
+
+
 func _on_destination_dir_selected(dir: String) -> void:
 	destination_dir = dir
 	$HBoxContainer/DestinationLineEdit.text = destination_dir
-	
+
+
 func is_folder_has_albedo(files:PackedStringArray, origin_folder_name: String):
 	for file in files:
 		if find_map_type(file.replace(origin_folder_name, "-")) == "albedo_texture":
 			return true
 	return false
-	
+
+
 func import_material(mat_object:MaterialStatusTracker, directory:String, files:PackedStringArray):
 	var map_type:String
 	var preview_material := StandardMaterial3D.new()
@@ -361,11 +373,13 @@ func import_material(mat_object:MaterialStatusTracker, directory:String, files:P
 		"orm_texture":"",
 		"heightmap_texture":"",
 	}
+	# find all texture maps of a material
 	for file in files:
-		map_type = find_map_type(file.replace(mat_object.folder_name, "-"))
+		map_type = find_map_type(file.replace(mat_object.folder_name, ""))
 		if map_type != '':
 			maps[map_type] = file
 	
+	# assign found maps to a material
 	for map in maps:
 		if maps[map] != "":
 			image = Image.load_from_file(directory+ "/" +maps[map])
@@ -395,16 +409,16 @@ func import_material(mat_object:MaterialStatusTracker, directory:String, files:P
 					preview_material.roughness_texture = texture
 					preview_material.metallic_texture = texture
 					
-					
 					preview_material.ao_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
 					preview_material.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
 					preview_material.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
 					
-				"heightmap_texture":
+				"heightmap_texture":# heightmaps do not work with triplanar mapping
+					
 					#preview_material.heightmap_enabled = true
 					#preview_material.heightmap_scale = 10
 					#preview_material.heightmap_texture = ImageTexture.create_from_image(image)
-					pass # height does not work with triplanar mapping
+					pass 
 
 	
 	preview_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS_ANISOTROPIC
@@ -414,15 +428,18 @@ func import_material(mat_object:MaterialStatusTracker, directory:String, files:P
 	mat_object.status = MATERIAL_READY
 	return preview_material
 
+
 func save_image_in_a_folder(mat:MaterialStatusTracker):
 	mat.preview_texture.get_image().save_jpg(
 		origin_dir+"/.preview_images/" + mat.folder_name + ".jpg" 
 		)
 	mat.status = DONE
 
+
 func get_pbr_material_texture():
 	await RenderingServer.frame_post_draw
-	return $SplitContainer/AspectRatioContainer/SubViewportContainer/SubViewport.get_texture()
+	return $SplitContainer/VSplitContainer/AspectRatioContainer/SubViewportContainer/SubViewport.get_texture()
+
 
 func save_pbr_material_image(folder_name):
 	await RenderingServer.frame_post_draw
@@ -430,22 +447,21 @@ func save_pbr_material_image(folder_name):
 	create_material_node(ImageTexture.create_from_image(rendered_image), folder_name)
 	rendered_image.save_jpg(origin_dir+"/.preview_images/" + folder_name + ".jpg" )
 	
-			
-	
-
 
 func find_map_type(file_name:String) -> String:
 	for word in key_words:
 		if file_name.findn(word) != -1:
 			return key_words[word]
 	return ""
-	
+
+
 func is_preview_image_exists(folder_name) -> bool:
 	for file in DirAccess.get_files_at(origin_dir + "/.preview_images"):
 		if file == folder_name + ".jpg":
 			return true
 	return false
-	
+
+
 func create_material_node(new_texture:Texture2D, folder_name:String):
 	var container:PanelContainer = material_container.instantiate()
 	container.find_child("Label").tooltip_text = folder_name
@@ -453,10 +469,6 @@ func create_material_node(new_texture:Texture2D, folder_name:String):
 	container.find_child("ColorRect").texture = new_texture 
 	container.find_child("Label").text = folder_name
 	container.custom_minimum_size = Vector2($GridContainer/HSlider.value,0)
-	
-	
-	
-	
 
 
 func _on_size_slider_value_changed(value: float) -> void:
@@ -465,15 +477,7 @@ func _on_size_slider_value_changed(value: float) -> void:
 	if material_containers.size() > 0:
 		for c in material_containers:
 			c.custom_minimum_size = Vector2(value, 0)
-	pass # Replace with function body.
-	
-func select_material(container:PanelContainer): # called from material_container node
-	if !material_sending_started and !material_processing_started:
-		var mat = MaterialStatusTracker.new(container.find_child("Label").text) # dummy
-		var directory: String = origin_dir + "/" + mat.folder_name
-		var files := DirAccess.get_files_at(directory)
-		var new_material = await import_material(mat, directory, files)
-		preview_mesh.mesh.surface_set_material(0, new_material)
+			
 
 
 func _on_all_select_button_up() -> void:
@@ -485,7 +489,7 @@ func _on_all_select_button_up() -> void:
 		all_selected = false
 		for child in material_containers_parent.get_children():
 			child.find_child("CheckBox").button_pressed = false
-			
+
 
 
 func _on_sending_button_up() -> void:
@@ -493,7 +497,7 @@ func _on_sending_button_up() -> void:
 	DirAccess.dir_exists_absolute(origin_dir) and destination_dir != "" and \
 	material_containers_parent.get_children().size() > 0:
 		materials_for_sending.clear()
-		for i in range(0, OS.get_processor_count()/2):
+		for i in range(0, OS.get_processor_count()):
 				threads.append(MyThread.new())
 		
 		for child in material_containers_parent.get_children():
@@ -502,21 +506,21 @@ func _on_sending_button_up() -> void:
 					child.find_child("Label").text)
 					)
 				
-		material_sending_started = true
+		is_sending_materials = true
 		sending_progress_bar.value = 0
 		sending_progress_bar.max_value = materials_for_sending.size()
 		disable_buttons()
 
 
 func _on_stop_importing_button_up() -> void:
-	material_processing_started = false
-	threads.clear()
+	is_processing_materials = false
+	clear_threads()
 	enable_buttons()
 
 
 func _on_stop_sending_button_up() -> void:
-	material_sending_started = false
-	threads.clear()
+	is_sending_materials = false
+	clear_threads()
 	enable_buttons()
 
 
@@ -531,8 +535,8 @@ func _on_search_text_edit_text_changed() -> void:
 		for child in material_containers_parent.get_children():
 			child.visible = true
 			
-			
-func _exit_tree() -> void:
+
+func _exit_tree() -> void: # closing program
 	for t in threads:
 		t.kill()
 
@@ -545,8 +549,24 @@ func _on_rotation_slider_value_changed(value: float) -> void:
 func _on_uv_scale_slider_value_changed(value: float) -> void:
 	preview_mesh.mesh.surface_get_material(0).uv1_scale = Vector3(value, value, value)
 
-
+#normal map type switch
 func _on_toggle_nm_button_button_up() -> void:
 	var mat := preview_mesh.mesh.surface_get_material(0)
 	mat.normal_scale = -(mat.normal_scale)
-	pass # Replace with function body.
+
+
+func _on_start_importing_button_up() -> void:
+	if origin_dir == '': return
+	check_origin_folder_for_materials()
+	
+	if materials.size() > 0:
+		for i in range(0, OS.get_processor_count()):
+			threads.append(MyThread.new())
+		import_progress_bar.value = 0
+		import_progress_bar.max_value = materials.size()
+		for c in material_containers_parent.get_children():
+			c.queue_free()
+		disable_buttons()
+		is_processing_materials = true
+	else:
+		OS.alert('No materials to import.')

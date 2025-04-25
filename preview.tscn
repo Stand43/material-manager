@@ -1,4 +1,24 @@
-[gd_scene load_steps=3 format=3 uid="uid://bh4sifxjwhx0k"]
+[gd_scene load_steps=7 format=3 uid="uid://bh4sifxjwhx0k"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_n4jvv"]
+sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+sky_curve = 0.00343144
+ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+
+[sub_resource type="Sky" id="Sky_4blw0"]
+sky_material = SubResource("ProceduralSkyMaterial_n4jvv")
+
+[sub_resource type="Environment" id="Environment_nqgut"]
+background_mode = 2
+sky = SubResource("Sky_4blw0")
+ssr_enabled = true
+ssao_enabled = true
+ssil_enabled = true
+glow_enabled = true
+
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_58f34"]
+auto_exposure_scale = 1.0
+auto_exposure_speed = 8.43
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3jbo8"]
 normal_enabled = true
@@ -8,11 +28,14 @@ material = SubResource("StandardMaterial3D_3jbo8")
 
 [node name="Node3D" type="Node3D"]
 
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_nqgut")
+camera_attributes = SubResource("CameraAttributesPractical_58f34")
+
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.4351)
-projection = 1
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0713232, 3.66646)
 current = true
-fov = 71.4376
+fov = 18.9
 size = 1.64702
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]

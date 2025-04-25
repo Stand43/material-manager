@@ -28,23 +28,32 @@ height = 9
 fill_from = Vector2(1, 0)
 fill_to = Vector2(1, 1)
 
-[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_hbb1k"]
+[sub_resource type="CameraAttributesPractical" id="CameraAttributesPractical_58f34"]
+auto_exposure_scale = 1.0
+auto_exposure_speed = 8.43
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_28ctr"]
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_n4jvv"]
+sky_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
+sky_curve = 0.00343144
+ground_horizon_color = Color(0.64625, 0.65575, 0.67075, 1)
 
-[sub_resource type="Sky" id="Sky_uyhi0"]
-sky_material = SubResource("ProceduralSkyMaterial_28ctr")
+[sub_resource type="Sky" id="Sky_4blw0"]
+sky_material = SubResource("ProceduralSkyMaterial_n4jvv")
 
-[sub_resource type="Environment" id="Environment_tb6vx"]
+[sub_resource type="Environment" id="Environment_nqgut"]
 background_mode = 2
-sky = SubResource("Sky_uyhi0")
+sky = SubResource("Sky_4blw0")
+ssr_enabled = true
+ssao_enabled = true
+ssil_enabled = true
+glow_enabled = true
 
 [sub_resource type="Environment" id="Environment_6kw81"]
 
 [sub_resource type="World3D" id="World3D_djk3k"]
-environment = SubResource("Environment_tb6vx")
+environment = SubResource("Environment_nqgut")
 fallback_environment = SubResource("Environment_6kw81")
-camera_attributes = SubResource("CameraAttributesPractical_hbb1k")
+camera_attributes = SubResource("CameraAttributesPractical_58f34")
 
 [node name="App" type="VBoxContainer"]
 anchors_preset = 15
@@ -65,9 +74,17 @@ size_flags_horizontal = 3
 layout_mode = 2
 text = "Origin folder"
 
-[node name="Container4" type="Container" parent="HBoxContainer2/HBoxContainer"]
-custom_minimum_size = Vector2(24.535, 0)
+[node name="Container4" type="Control" parent="HBoxContainer2/HBoxContainer"]
+custom_minimum_size = Vector2(25, 0)
 layout_mode = 2
+
+[node name="StartImporting" type="Button" parent="HBoxContainer2/HBoxContainer"]
+layout_mode = 2
+text = "Import"
+
+[node name="StopImportingButton" type="Button" parent="HBoxContainer2/HBoxContainer"]
+layout_mode = 2
+text = "Stop"
 
 [node name="ImportProgressBar" type="ProgressBar" parent="HBoxContainer2/HBoxContainer"]
 layout_mode = 2
@@ -76,13 +93,9 @@ size_flags_vertical = 4
 step = 1.0
 rounded = true
 
-[node name="StopImportingButton" type="Button" parent="HBoxContainer2/HBoxContainer"]
+[node name="Container" type="Control" parent="HBoxContainer2/HBoxContainer"]
+custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
-text = "Stop"
-
-[node name="Container" type="Container" parent="HBoxContainer2/HBoxContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
 
 [node name="HBoxContainer3" type="HBoxContainer" parent="HBoxContainer2"]
 layout_mode = 2
@@ -92,7 +105,7 @@ size_flags_horizontal = 3
 layout_mode = 2
 text = "Destination folder"
 
-[node name="Container3" type="Container" parent="HBoxContainer2/HBoxContainer3"]
+[node name="Container3" type="Control" parent="HBoxContainer2/HBoxContainer3"]
 custom_minimum_size = Vector2(24.535, 0)
 layout_mode = 2
 
@@ -100,15 +113,15 @@ layout_mode = 2
 layout_mode = 2
 text = "Send to folder"
 
+[node name="StopSendingButton" type="Button" parent="HBoxContainer2/HBoxContainer3"]
+layout_mode = 2
+text = "Stop"
+
 [node name="SendingProgressBar" type="ProgressBar" parent="HBoxContainer2/HBoxContainer3"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 step = 1.0
-
-[node name="StopSendingButton" type="Button" parent="HBoxContainer2/HBoxContainer3"]
-layout_mode = 2
-text = "Stop"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 2
@@ -250,7 +263,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 max_value = 5.0
 step = 0.01
-value = 1.0
+value = 0.5
 
 [node name="ToggleNMButton" type="Button" parent="SplitContainer/VSplitContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -278,6 +291,7 @@ file_mode = 2
 access = 2
 use_native_dialog = true
 
+[connection signal="button_up" from="HBoxContainer2/HBoxContainer/StartImporting" to="." method="_on_start_importing_button_up"]
 [connection signal="button_up" from="HBoxContainer2/HBoxContainer/StopImportingButton" to="." method="_on_stop_importing_button_up"]
 [connection signal="button_up" from="HBoxContainer2/HBoxContainer3/SendingButton" to="." method="_on_sending_button_up"]
 [connection signal="button_up" from="HBoxContainer2/HBoxContainer3/StopSendingButton" to="." method="_on_stop_sending_button_up"]

@@ -168,6 +168,7 @@ var materials:Array
 const MAX_PROCESSED_MATERIALS_PER_FRAME = 20
 var processed_materials_count := 0
 
+
 func _process(delta: float) -> void:
 	
 	if is_processing_materials:
@@ -336,11 +337,12 @@ func _on_origin_dir_selected(dir: String) -> void:
 func disable_buttons():
 	$HBoxContainer/OriginButton.disabled = true
 	$HBoxContainer2/HBoxContainer3/SendingButton.disabled = true
+	$HBoxContainer2/HBoxContainer/StartImporting.disabled = true
 	
 func enable_buttons():
 	$HBoxContainer/OriginButton.disabled = false
 	$HBoxContainer2/HBoxContainer3/SendingButton.disabled = false
-
+	$HBoxContainer2/HBoxContainer/StartImporting.disabled = false
 
 
 func _on_open_destination_button_up() -> void:

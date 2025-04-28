@@ -1,6 +1,6 @@
 [gd_scene load_steps=15 format=3 uid="uid://da8dxuncfh6l1"]
 
-[ext_resource type="Script" path="res://app_script.gd" id="1_8bgsk"]
+[ext_resource type="Script" uid="uid://c1i7gvxr3c5kg" path="res://app_script.gd" id="1_8bgsk"]
 [ext_resource type="PackedScene" uid="uid://bh4sifxjwhx0k" path="res://preview.tscn" id="1_k35y7"]
 
 [sub_resource type="Theme" id="Theme_ke61u"]

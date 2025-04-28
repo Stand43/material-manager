@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://blxvld7ddf351"]
 
-[ext_resource type="Script" path="res://material_container_script.gd" id="1_monmc"]
+[ext_resource type="Script" uid="uid://rv08so48kqsv" path="res://material_container_script.gd" id="1_monmc"]
 [ext_resource type="Texture2D" uid="uid://cnxh8w12c61ew" path="res://icon.svg" id="1_r2ssm"]
 
 [node name="PanelContainer" type="PanelContainer"]
